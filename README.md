@@ -1,68 +1,158 @@
-# OpenAPI Template
+# DEX Aggregator - Full Stack Project
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/templates/tree/main/chanfana-openapi-template)
+A complete DEX aggregator implementation with smart contracts (backend) and a modern web interface (frontend) for swapping tokens across multiple decentralized exchanges.
 
-![OpenAPI Template Preview](https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/91076b39-1f5b-46f6-7f14-536a6f183000/public)
+## 🚀 Features
 
-<!-- dash-content-start -->
+### Backend (Smart Contracts)
+- **MultiHopAggregator**: Core contract that finds the best swap routes across 7 DEX routers
+- **Multi-DEX Support**: Integrates with HyperSwap V2/V3, KittenSwap, LiquidSwap, GlueX, Project X V1/V2
+- **Fee Collection**: Configurable fee system with collector wallet
+- **Slippage Protection**: Built-in slippage controls for safe swaps
 
-This is a Cloudflare Worker with OpenAPI 3.1 Auto Generation and Validation using [chanfana](https://github.com/cloudflare/chanfana) and [Hono](https://github.com/honojs/hono).
+### Frontend (Next.js Web App)
+- **Modern UI**: Beautiful, responsive design with dark mode
+- **Wallet Integration**: MetaMask and Web3 wallet support
+- **Real-time Quotes**: Live price feeds from multiple DEXs
+- **Token Selection**: Easy token picker with search functionality
+- **Vercel Ready**: Deploy directly to Vercel
 
-This is an example project made to be used as a quick start into building OpenAPI compliant Workers that generates the
-`openapi.json` schema automatically from code and validates the incoming request to the defined parameters or request body.
+## 📁 Project Structure
 
-This template includes various endpoints, a D1 database, and integration tests using [Vitest](https://vitest.dev/) as examples. In endpoints, you will find [chanfana D1 AutoEndpoints](https://chanfana.com/endpoints/auto/d1) and a [normal endpoint](https://chanfana.com/endpoints/defining-endpoints) to serve as examples for your projects.
-
-Besides being able to see the OpenAPI schema (openapi.json) in the browser, you can also extract the schema locally no hassle by running this command `npm run schema`.
-
-<!-- dash-content-end -->
-
-> [!IMPORTANT]
-> When using C3 to create this project, select "no" when it asks if you want to deploy. You need to follow this project's [setup steps](https://github.com/cloudflare/templates/tree/main/openapi-template#setup-steps) before deploying.
-
-## Getting Started
-
-Outside of this repo, you can start a new project with this template using [C3](https://developers.cloudflare.com/pages/get-started/c3/) (the `create-cloudflare` CLI):
-
-```bash
-npm create cloudflare@latest -- --template=cloudflare/templates/openapi-template
+```
+├── contracts/                 # Smart Contracts (Backend)
+│   ├── MultiHopAggregator.sol # Main aggregator contract
+│   └── interfaces/            # Contract interfaces
+│       ├── IERC20.sol
+│       ├── IUniswapV2Router.sol
+│       └── IUniswapV3Router.sol
+├── scripts/                   # Deployment scripts
+│   └── deploy.js             # Contract deployment
+├── frontend/                  # Next.js Web App (Frontend)
+│   ├── src/
+│   │   ├── app/              # Next.js app directory
+│   │   ├── components/       # React components
+│   │   └── lib/              # Utilities and contracts
+│   ├── package.json          # Frontend dependencies
+│   └── README.md             # Frontend setup guide
+├── hardhat.config.js         # Hardhat configuration
+└── package.json              # Backend dependencies
 ```
 
-A live public deployment of this template is available at [https://openapi-template.templates.workers.dev](https://openapi-template.templates.workers.dev)
+## 🛠️ Quick Start
 
-## Setup Steps
+### Backend Setup (Smart Contracts)
 
-1. Install the project dependencies with a package manager of your choice:
+1. **Install dependencies:**
    ```bash
    npm install
    ```
-2. Create a [D1 database](https://developers.cloudflare.com/d1/get-started/) with the name "openapi-template-db":
+
+2. **Compile contracts:**
    ```bash
-   npx wrangler d1 create openapi-template-db
-   ```
-   ...and update the `database_id` field in `wrangler.json` with the new database ID.
-3. Run the following db migration to initialize the database (notice the `migrations` directory in this project):
-   ```bash
-   npx wrangler d1 migrations apply DB --remote
-   ```
-4. Deploy the project!
-   ```bash
-   npx wrangler deploy
+   npx hardhat compile
    ```
 
-## Testing
+3. **Deploy contracts:**
+   ```bash
+   npx hardhat run scripts/deploy.js --network <your-network>
+   ```
 
-This template includes integration tests using [Vitest](https://vitest.dev/). To run the tests locally:
+### Frontend Setup (Web App)
 
+1. **Navigate to frontend directory:**
+   ```bash
+   cd frontend
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Start development server:**
+   ```bash
+   npm run dev
+   ```
+
+4. **Open browser:**
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+## 🚀 Deployment
+
+### Smart Contracts
+Deploy to your preferred network (Ethereum, HyperEVM, etc.):
 ```bash
+npx hardhat run scripts/deploy.js --network mainnet
+```
+
+### Frontend to Vercel
+1. **Connect your GitHub repo to Vercel**
+2. **Set environment variables:**
+   - `NEXT_PUBLIC_CONTRACT_ADDRESS`: Your deployed contract address
+3. **Deploy:**
+   ```bash
+   cd frontend
+   vercel --prod
+   ```
+
+## 🔧 Configuration
+
+### Contract Addresses
+Update router addresses in `scripts/deploy.js`:
+```javascript
+const routers = [
+  "0xb4a9C4e6Ea8E2191d2FA5B380452a634Fb21240A", // HyperSwap V2
+  "0x4e2960a8cd19b467b82d26d83facb0fae26b094d", // HyperSwap V3
+  // ... other routers
+];
+```
+
+### Frontend Configuration
+Update contract address in `frontend/src/lib/contracts.ts`:
+```typescript
+export const CONTRACT_ADDRESSES = {
+  aggregator: "YOUR_DEPLOYED_CONTRACT_ADDRESS",
+}
+```
+
+## 📚 Documentation
+
+- **Frontend Guide**: See [frontend/README.md](frontend/README.md) for detailed frontend setup
+- **Contract Documentation**: See inline comments in Solidity files
+- **Deployment Guide**: See `scripts/deploy.js` for deployment instructions
+
+## 🧪 Testing
+
+### Smart Contracts
+```bash
+npx hardhat test
+```
+
+### Frontend
+```bash
+cd frontend
 npm run test
 ```
 
-Test files are located in the `tests/` directory, with examples demonstrating how to test your endpoints and database interactions.
+## 🤝 Contributing
 
-## Project structure
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-1. Your main router is defined in `src/index.ts`.
-2. Each endpoint has its own file in `src/endpoints/`.
-3. Integration tests are located in the `tests/` directory.
-4. For more information read the [chanfana documentation](https://chanfana.com/), [Hono documentation](https://hono.dev/docs), and [Vitest documentation](https://vitest.dev/guide/).
+## 📄 License
+
+MIT License - see LICENSE file for details
+
+## 🆘 Support
+
+For support:
+- Open an issue in the repository
+- Check the documentation in each directory
+- Review the inline comments in the code
+
+---
+
+**Built with ❤️ using Hardhat, Next.js, and Tailwind CSS**
