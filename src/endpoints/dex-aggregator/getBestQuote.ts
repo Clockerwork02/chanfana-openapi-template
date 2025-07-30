@@ -106,7 +106,7 @@ export class GetBestQuote extends OpenAPIRoute {
       );
 
       // Include HyperCore native order book if enabled
-      if (useHyperCoreOrders && !excludedDexs.includes('HyperCore')) {
+      if (useHyperCoreOrders && !excludedDexs.includes('HyperCore-Native')) {
         quotePromises.push(
           this.getHyperCoreQuote(tokenIn, tokenOut, amountIn)
         );
@@ -189,44 +189,37 @@ export class GetBestQuote extends OpenAPIRoute {
   }
 
   private async getActiveDexs(c: Context, excludedDexs: string[]): Promise<DEXConfig[]> {
-    // Real DEX configurations that could exist on HyperEVM
+    // Real DEX configurations based on HyperEVM ecosystem research
+    // Note: HyperEVM is still in early stages, so most liquidity comes from HyperCore
     const allDexs: DEXConfig[] = [
       {
-        name: 'HyperSwap',
-        address: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D', // Uniswap V2 style router
-        router: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
-        factory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
-        type: 'uniswap-v2',
-        fee: 30, // 0.3%
-        isActive: true,
-      },
-      {
-        name: 'HyperLiquid-Native',
+        name: 'HyperCore-Native',
         address: '0x0000000000000000000000000000000000000001', // System contract
         router: '0x0000000000000000000000000000000000000001',
         factory: '0x0000000000000000000000000000000000000001',
         type: 'hyperliquid-native',
-        fee: 10, // 0.1% (lower fees for native integration)
+        fee: 5, // 0.05% (best rates from native order book)
         isActive: true,
+      },
+      // Note: The following DEXs may not be deployed yet but represent expected AMM deployments
+      {
+        name: 'HyperSwap-V2',
+        address: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D', // Expected Uniswap V2 style
+        router: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
+        factory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
+        type: 'uniswap-v2',
+        fee: 30, // 0.3%
+        isActive: false, // Set to false until confirmed deployment
       },
       {
         name: 'HyperDEX-V3',
-        address: '0xE592427A0AEce92De3Edee1F18E0157C05861564', // Uniswap V3 style
+        address: '0xE592427A0AEce92De3Edee1F18E0157C05861564', // Expected Uniswap V3 style
         router: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
         factory: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
         quoter: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6',
         type: 'uniswap-v3',
         fee: 25, // 0.25%
-        isActive: true,
-      },
-      {
-        name: 'HyperCurve',
-        address: '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7', // Curve style
-        router: '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7',
-        factory: '0x0000000022D53366457F9d5E68Ec105046FC4383',
-        type: 'curve',
-        fee: 4, // 0.04% (optimized for stablecoins)
-        isActive: true,
+        isActive: false, // Set to false until confirmed deployment
       },
     ];
 
@@ -315,7 +308,7 @@ export class GetBestQuote extends OpenAPIRoute {
       const executionPrice = (Number(amountOut) / Number(baseAmount)).toFixed(6);
 
       return {
-        dex: 'HyperCore',
+        dex: 'HyperCore-Native',
         poolAddress: '0x0000000000000000000000000000000000000001',
         amountIn,
         amountOut: amountOut.toString(),
@@ -369,9 +362,9 @@ export class GetBestQuote extends OpenAPIRoute {
 
   private getDexFee(dexName: string): number {
     const fees = {
-      'HyperSwap': 30,
-      'HyperLiquid-Native': 10,
+      'HyperSwap-V2': 30,
       'HyperDEX-V3': 25,
+      'HyperCore-Native': 5,
       'HyperCurve': 4,
       'HyperCore': 5,
     };
