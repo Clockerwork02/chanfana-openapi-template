@@ -1,0 +1,135 @@
+{
+  "contractName": "MultiHopAggregator",
+  "chainId": 999,
+  "contractAddress": "0xcBEEA2f172F517729d70adE85d313411572Dab32",
+  "abi": [
+    {
+      "inputs": [
+        {"internalType": "address", "name": "_feeCollector", "type": "address"},
+        {"internalType": "address", "name": "_v2", "type": "address"},
+        {"internalType": "address", "name": "_v3", "type": "address"},
+        {"internalType": "address", "name": "_kitten", "type": "address"},
+        {"internalType": "address", "name": "_liquid", "type": "address"},
+        {"internalType": "address", "name": "_gluex", "type": "address"},
+        {"internalType": "address", "name": "_pxv1", "type": "address"},
+        {"internalType": "address", "name": "_pxv2", "type": "address"}
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "feeCollector",
+      "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {"internalType": "address", "name": "tokenIn", "type": "address"},
+        {"internalType": "address", "name": "tokenOut", "type": "address"},
+        {"internalType": "uint256", "name": "amountIn", "type": "uint256"}
+      ],
+      "name": "getBestQuote",
+      "outputs": [
+        {"internalType": "uint256", "name": "bestAmountOut", "type": "uint256"},
+        {"internalType": "address", "name": "bestRouter", "type": "address"}
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "glueX",
+      "outputs": [{"internalType": "contract IUniswapV2Router", "name": "", "type": "address"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "hyperSwapV2",
+      "outputs": [{"internalType": "contract IUniswapV2Router", "name": "", "type": "address"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "hyperSwapV3",
+      "outputs": [{"internalType": "contract IUniswapV3Router", "name": "", "type": "address"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "kittenSwap",
+      "outputs": [{"internalType": "contract IUniswapV2Router", "name": "", "type": "address"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "liquidSwap",
+      "outputs": [{"internalType": "contract IUniswapV2Router", "name": "", "type": "address"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "projectXV1",
+      "outputs": [{"internalType": "contract IUniswapV2Router", "name": "", "type": "address"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "projectXV2",
+      "outputs": [{"internalType": "contract IUniswapV2Router", "name": "", "type": "address"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType": "address", "name": "_collector", "type": "address"}],
+      "name": "setFeeCollector",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {"internalType": "address", "name": "tokenIn", "type": "address"},
+        {"internalType": "address", "name": "tokenOut", "type": "address"},
+        {"internalType": "uint256", "name": "amountIn", "type": "uint256"},
+        {"internalType": "uint256", "name": "amountOutMin", "type": "uint256"},
+        {"internalType": "address", "name": "to", "type": "address"}
+      ],
+      "name": "swap",
+      "outputs": [{"internalType": "uint256", "name": "amountOut", "type": "uint256"}],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "dexRouters": {
+    "hyperSwapV2": "0xb4a9C4e6Ea8E2191d2FA5B380452a634Fb21240A",
+    "hyperSwapV3": "0x4e2960a8cd19b467b82d26d83facb0fae26b094d",
+    "kittenSwap": "0x8ffdb06039b1b8188c2c721dc3c435b5773d7346",
+    "liquidSwap": "0x744489ee3d540777a66f2cf297479745e0852f7a",
+    "glueX": "0xe95f6eaeae1e4d650576af600b33d9f7e5f9f7fd",
+    "projectXV1": "0x1EbDFC75FfE3ba3de61E7138a3E8706aC841Af9B",
+    "projectXV2": "0x9EE0D03BB45268860dd9A72Ab681d36C80ea7974"
+  },
+  "feeCollector": "0xad63f721996c19204c24cffa2416f1d7618df828",
+  "features": [
+    "Multi-DEX aggregation across 7 routers",
+    "Best price discovery",
+    "10% configurable fee collection",
+    "Owner access controls",
+    "Emergency withdrawal protection"
+  ]
+}
