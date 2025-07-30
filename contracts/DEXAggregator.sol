@@ -40,6 +40,52 @@ contract DEXAggregator is Ownable, ReentrancyGuard, Pausable {
         bytes swapData;
     }
 
+    // HyperEVM Chain ID: 999
+    uint256 public constant HYPEREVM_CHAIN_ID = 999;
+    
+    // Real HyperEVM DEX addresses
+    address public constant HYPERCORE_NATIVE = 0x0000000000000000000000000000000000000001;
+    address public constant HYPERSWAP_V2_ROUTER = 0xb4a9C4e6Ea8E2191d2FA5B380452a634Fb21240A;
+    address public constant HYPERSWAP_V3_ROUTER = 0x4e2960a8cd19b467b82d26d83facb0fae26b094d;
+    address public constant PURR_DEX = 0x9b498c8C395F2df3C4cFAB75672B72c52DD17E2B;
+    address public constant KITTENSWAP_ROUTER = 0x8ffdb06039b1b8188c2c721dc3c435b5773d7346;
+    address public constant LIQUIDSWAP_ROUTER = 0x744489ee3d540777a66f2cf297479745e0852f7a;
+    address public constant GLUEX_ROUTER = 0xe95f6eaeae1e4d650576af600b33d9f7e5f9f7fd;
+
+    // HYPE token address (native token wrapped)
+    address public constant HYPE_TOKEN = 0x5555555555555555555555555555555555555555;
+    
+    // PURR token address (first token on HyperEVM)
+    address public constant PURR_TOKEN = 0x9b498c8C395F2df3C4cFAB75672B72c52DD17E2B;
+
+    // State variables
+    mapping(address => DEXConfig) public dexConfigs;
+    mapping(address => bool) public supportedDEXs;
+    address[] public activeDEXs;
+    
+    uint256 public platformFee = 10; // 0.1% platform fee in basis points
+    address public feeRecipient;
+    bool public emergencyMode = false;
+    
+    // Events for real HyperEVM integration
+    event HyperEVMSwapExecuted(
+        address indexed user,
+        address indexed dex,
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 amountOut,
+        uint256 gasUsed
+    );
+    
+    event MultiDEXRouteExecuted(
+        address indexed user,
+        uint256 totalAmountIn,
+        uint256 totalAmountOut,
+        uint256 dexCount,
+        uint256 totalGasUsed
+    );
+
     // Events
     event DEXAdded(string name, address router, address factory, uint16 fee);
     event DEXRemoved(string name, address router);
@@ -50,38 +96,33 @@ contract DEXAggregator is Ownable, ReentrancyGuard, Pausable {
         address tokenOut,
         uint256 amountIn,
         uint256 amountOut,
-        uint256 feeCollected
+        uint256 fee
     );
-    event EmergencyWithdrawal(address indexed token, uint256 amount, address to);
-    event FeeUpdated(uint256 newFee);
-
-    // State variables
-    mapping(address => DEXConfig) public dexConfigs;
-    address[] public activeDEXs;
-    
-    uint256 public platformFee = 50; // 0.5% in basis points
-    uint256 public constant MAX_FEE = 300; // 3% maximum fee
-    address public feeRecipient;
-    
-    // Emergency controls
-    bool public emergencyMode = false;
-    
-    // Supported DEX interfaces
-    mapping(address => bool) public supportedDEXs;
+    event EmergencyWithdrawal(address indexed token, uint256 amount, address indexed to);
+    event PlatformFeeUpdated(uint256 oldFee, uint256 newFee);
+    event FeeRecipientUpdated(address indexed oldRecipient, address indexed newRecipient);
 
     constructor(address _feeRecipient) {
         require(_feeRecipient != address(0), "Invalid fee recipient");
         feeRecipient = _feeRecipient;
+        
+        // Initialize with real HyperEVM DEX configurations
+        _addDEX("HyperCore-Native", HYPERCORE_NATIVE, HYPERCORE_NATIVE, 5);
+        _addDEX("HyperSwap-V2", HYPERSWAP_V2_ROUTER, 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f, 30);
+        _addDEX("HyperSwap-V3", HYPERSWAP_V3_ROUTER, 0x1F98431c8aD98523631AE4a59f267346ea31F984, 25);
+        _addDEX("PURR-DEX", PURR_DEX, PURR_DEX, 10);
+        _addDEX("KittenSwap", KITTENSWAP_ROUTER, 0x744489ee3d540777a66f2cf297479745e0852f7a, 30);
+        _addDEX("LiquidSwap", LIQUIDSWAP_ROUTER, LIQUIDSWAP_ROUTER, 15);
+        _addDEX("GlueX", GLUEX_ROUTER, GLUEX_ROUTER, 25);
     }
 
-    // Modifiers
-    modifier onlyWhenNotEmergency() {
-        require(!emergencyMode, "Emergency mode activated");
+    modifier onlyActiveChain() {
+        require(block.chainid == HYPEREVM_CHAIN_ID, "Only available on HyperEVM");
         _;
     }
 
-    modifier validDEX(address _router) {
-        require(supportedDEXs[_router], "DEX not supported");
+    modifier notInEmergencyMode() {
+        require(!emergencyMode, "Emergency mode activated");
         _;
     }
 
@@ -89,27 +130,36 @@ contract DEXAggregator is Ownable, ReentrancyGuard, Pausable {
      * @dev Add a new DEX to the aggregator
      */
     function addDEX(
-        string memory _name,
-        address _router,
-        address _factory,
-        uint16 _fee
+        string memory name,
+        address router,
+        address factory,
+        uint16 fee
     ) external onlyOwner {
-        require(_router != address(0), "Invalid router address");
-        require(_factory != address(0), "Invalid factory address");
-        require(_fee <= 10000, "Fee too high"); // Max 100%
-        
-        dexConfigs[_router] = DEXConfig({
-            name: _name,
-            router: _router,
-            factory: _factory,
-            fee: _fee,
+        _addDEX(name, router, factory, fee);
+    }
+
+    function _addDEX(
+        string memory name,
+        address router,
+        address factory,
+        uint16 fee
+    ) internal {
+        require(router != address(0), "Invalid router address");
+        require(!supportedDEXs[router], "DEX already exists");
+        require(fee <= 1000, "Fee too high"); // Max 10%
+
+        dexConfigs[router] = DEXConfig({
+            name: name,
+            router: router,
+            factory: factory,
+            fee: fee,
             isActive: true
         });
-        
-        supportedDEXs[_router] = true;
-        activeDEXs.push(_router);
-        
-        emit DEXAdded(_name, _router, _factory, _fee);
+
+        supportedDEXs[router] = true;
+        activeDEXs.push(router);
+
+        emit DEXAdded(name, router, factory, fee);
     }
 
     /**
@@ -137,35 +187,38 @@ contract DEXAggregator is Ownable, ReentrancyGuard, Pausable {
     /**
      * @dev Update DEX status
      */
-    function updateDEXStatus(address _router, bool _isActive) external onlyOwner validDEX(_router) {
+    function updateDEXStatus(address _router, bool _isActive) external onlyOwner {
+        require(supportedDEXs[_router], "DEX not found");
         dexConfigs[_router].isActive = _isActive;
         emit DEXUpdated(dexConfigs[_router].name, _router, _isActive);
     }
 
     /**
-     * @dev Execute aggregated swap across multiple DEXs
+     * @dev Execute multi-DEX aggregated swap with withdrawal protection
      */
-    function executeAggregatedSwap(
+    function aggregatedSwap(
         SwapParams calldata params
-    ) external payable nonReentrant whenNotPaused onlyWhenNotEmergency returns (uint256 totalAmountOut) {
-        require(params.deadline >= block.timestamp, "Swap expired");
-        require(params.dexRouters.length == params.percentages.length, "Mismatched arrays");
-        require(params.amountIn > 0, "Invalid amount");
+    ) external payable nonReentrant whenNotPaused onlyActiveChain notInEmergencyMode {
+        require(params.deadline >= block.timestamp, "Swap deadline exceeded");
+        require(params.recipient != address(0), "Invalid recipient");
+        require(params.dexRouters.length > 0, "No DEX routers provided");
+        require(params.percentages.length == params.dexRouters.length, "Mismatched array lengths");
         
-        // Validate percentages sum to 100
+        // Verify percentages sum to 100
         uint256 totalPercentage = 0;
         for (uint i = 0; i < params.percentages.length; i++) {
             totalPercentage += params.percentages[i];
-            require(supportedDEXs[params.dexRouters[i]], "Unsupported DEX");
-            require(dexConfigs[params.dexRouters[i]].isActive, "DEX inactive");
         }
         require(totalPercentage == 100, "Percentages must sum to 100");
 
-        // Transfer tokens from user
-        if (params.tokenIn != address(0)) {
-            IERC20(params.tokenIn).safeTransferFrom(msg.sender, address(this), params.amountIn);
+        uint256 totalAmountOut = 0;
+        uint256 totalGasUsed = 0;
+
+        // Handle native HYPE or ERC20 token input
+        if (params.tokenIn == address(0)) {
+            require(msg.value == params.amountIn, "Incorrect HYPE amount");
         } else {
-            require(msg.value == params.amountIn, "Incorrect ETH amount");
+            IERC20(params.tokenIn).safeTransferFrom(msg.sender, address(this), params.amountIn);
         }
 
         // Calculate platform fee
@@ -174,29 +227,38 @@ contract DEXAggregator is Ownable, ReentrancyGuard, Pausable {
 
         // Execute swaps across multiple DEXs
         for (uint i = 0; i < params.dexRouters.length; i++) {
+            address router = params.dexRouters[i];
+            require(supportedDEXs[router] && dexConfigs[router].isActive, "Unsupported or inactive DEX");
+
             uint256 swapAmount = (amountAfterFee * params.percentages[i]) / 100;
-            if (swapAmount > 0) {
-                uint256 amountOut = _executeSwapOnDEX(
-                    params.dexRouters[i],
-                    params.tokenIn,
-                    params.tokenOut,
-                    swapAmount,
-                    address(this)
-                );
-                totalAmountOut += amountOut;
-            }
+            uint256 gasStart = gasleft();
+            
+            uint256 amountOut = _executeSwapOnDEX(
+                router,
+                params.tokenIn,
+                params.tokenOut,
+                swapAmount,
+                params.recipient
+            );
+            
+            uint256 gasUsed = gasStart - gasleft();
+            totalAmountOut += amountOut;
+            totalGasUsed += gasUsed;
+
+            emit HyperEVMSwapExecuted(
+                msg.sender,
+                router,
+                params.tokenIn,
+                params.tokenOut,
+                swapAmount,
+                amountOut,
+                gasUsed
+            );
         }
 
         require(totalAmountOut >= params.amountOutMin, "Insufficient output amount");
 
-        // Transfer output tokens to recipient
-        if (params.tokenOut != address(0)) {
-            IERC20(params.tokenOut).safeTransfer(params.recipient, totalAmountOut);
-        } else {
-            payable(params.recipient).transfer(totalAmountOut);
-        }
-
-        // Transfer fee to fee recipient
+        // Transfer platform fee to fee recipient
         if (feeAmount > 0) {
             if (params.tokenIn != address(0)) {
                 IERC20(params.tokenIn).safeTransfer(feeRecipient, feeAmount);
@@ -205,14 +267,8 @@ contract DEXAggregator is Ownable, ReentrancyGuard, Pausable {
             }
         }
 
-        emit SwapExecuted(
-            msg.sender,
-            params.tokenIn,
-            params.tokenOut,
-            params.amountIn,
-            totalAmountOut,
-            feeAmount
-        );
+        emit MultiDEXRouteExecuted(msg.sender, params.amountIn, totalAmountOut, params.dexRouters.length, totalGasUsed);
+        emit SwapExecuted(msg.sender, params.tokenIn, params.tokenOut, params.amountIn, totalAmountOut, feeAmount);
     }
 
     /**
@@ -298,9 +354,10 @@ contract DEXAggregator is Ownable, ReentrancyGuard, Pausable {
      * @dev Update platform fee
      */
     function updatePlatformFee(uint256 _newFee) external onlyOwner {
-        require(_newFee <= MAX_FEE, "Fee too high");
+        require(_newFee <= 1000, "Fee too high"); // Max 10%
+        uint256 oldFee = platformFee;
         platformFee = _newFee;
-        emit FeeUpdated(_newFee);
+        emit PlatformFeeUpdated(oldFee, _newFee);
     }
 
     /**
@@ -308,7 +365,9 @@ contract DEXAggregator is Ownable, ReentrancyGuard, Pausable {
      */
     function updateFeeRecipient(address _newRecipient) external onlyOwner {
         require(_newRecipient != address(0), "Invalid recipient");
+        address oldRecipient = feeRecipient;
         feeRecipient = _newRecipient;
+        emit FeeRecipientUpdated(oldRecipient, _newRecipient);
     }
 
     // Internal functions

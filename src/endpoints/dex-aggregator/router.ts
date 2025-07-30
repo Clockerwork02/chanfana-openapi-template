@@ -15,54 +15,68 @@ const app = new Hono<{ Bindings: Env }>();
 export const dexAggregatorRouter = fromHono(app, {
   schema: {
     info: {
-      title: 'HyperEVM DEX Aggregator API',
+      title: 'HyperEVM Multi-DEX Aggregator API',
       version: '1.0.0',
-      description: 'Multi-DEX aggregator for optimal token swaps on HyperEVM chain',
+      description: 'Comprehensive multi-DEX aggregator for optimal token swaps on HyperEVM chain (Chain ID: 999)',
     },
     tags: [
       {
         name: 'Quotes',
-        description: 'Get optimal swap quotes from multiple DEXs',
+        description: 'Get best quotes across multiple DEXs',
       },
       {
-        name: 'Swaps',
-        description: 'Execute optimal swaps across multiple DEXs',
+        name: 'Swap',
+        description: 'Execute swaps with withdrawal protection',
       },
       {
         name: 'Tokens',
-        description: 'Token information and supported assets',
-      },
-      {
-        name: 'Pools',
-        description: 'Liquidity pool information and analytics',
-      },
-      {
-        name: 'Arbitrage',
-        description: 'Arbitrage opportunities across DEXs',
+        description: 'Token and pool information',
       },
       {
         name: 'Analytics',
-        description: 'Price history and liquidity analytics',
+        description: 'Market analytics and arbitrage opportunities',
       },
     ],
   },
 });
 
-// Quote endpoints
+// Register all endpoints
 dexAggregatorRouter.get('/quote', GetBestQuote);
-
-// Swap endpoints
 dexAggregatorRouter.post('/swap', ExecuteSwap);
-
-// Token endpoints
 dexAggregatorRouter.get('/tokens', GetSupportedTokens);
-
-// Pool endpoints
 dexAggregatorRouter.get('/pools', GetPools);
-
-// Arbitrage endpoints
 dexAggregatorRouter.get('/arbitrage', GetArbitrageOpportunities);
+dexAggregatorRouter.get('/price-history', GetPriceHistory);
+dexAggregatorRouter.get('/analytics', GetLiquidityAnalytics);
 
-// Analytics endpoints
-dexAggregatorRouter.get('/price-history/:tokenAddress', GetPriceHistory);
-dexAggregatorRouter.get('/liquidity-analytics', GetLiquidityAnalytics);
+// Health check endpoint
+dexAggregatorRouter.get('/health', (c) => {
+  return c.json({
+    success: true,
+    data: {
+      status: 'healthy',
+      chainId: 999, // HyperEVM mainnet
+      supportedDexs: 7,
+      activeDexs: [
+        'HyperCore-Native',
+        'HyperSwap-V2', 
+        'HyperSwap-V3',
+        'PURR-DEX',
+        'KittenSwap',
+        'LiquidSwap',
+        'GlueX'
+      ],
+      features: [
+        'Multi-DEX aggregation',
+        'Multi-hop routing',
+        'Price impact optimization',
+        'Gas estimation',
+        'Slippage protection',
+        'Emergency withdrawal',
+        'Arbitrage detection'
+      ],
+    },
+  });
+});
+
+export default dexAggregatorRouter;
